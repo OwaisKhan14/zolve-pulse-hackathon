@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Zolve Pulse</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+  body { background: #1A1A2E; display: flex; justify-content: center; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pop { 0% { transform: scale(0.8); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+  @keyframes pulse2 { 0%,100% { opacity:1 } 50% { opacity:.3 } }
+  @keyframes slideIn { from { opacity:0; transform:translateX(-8px) } to { opacity:1; transform:translateX(0) } }
+  @keyframes typing { 0% { width: 0 } 100% { width: 100% } }
+  .fu { animation: fadeUp .5s ease-out both; }
+  .fu1{animation-delay:.05s}.fu2{animation-delay:.1s}.fu3{animation-delay:.15s}.fu4{animation-delay:.2s}.fu5{animation-delay:.25s}
+  .spop { animation: pop .4s cubic-bezier(.175,.885,.32,1.275) both; }
+  .pls { animation: pulse2 1.2s infinite; }
+  .pill-in { animation: slideIn .3s ease-out both; }
+  .zbtn:active { transform: scale(0.96); transition: transform .1s; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const Z = {
+  orange:"#FF5A2D",orangeLight:"#FFF0EB",orangeMid:"#FF8C61",
+  bg:"#F6F6F8",white:"#FFFFFF",card:"#FFFFFF",
+  text:"#1A1A2E",textSec:"#6B7280",textTert:"#9CA3AF",
+  green:"#00B37E",greenLight:"#ECFDF5",
+  red:"#EF4444",redLight:"#FEF2F2",
+  blue:"#3B82F6",purple:"#7C3AED",
+  border:"#E5E7EB",borderLight:"#F3F4F6",
+  shadow:"0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04)",
+  shadowMd:"0 4px 12px rgba(0,0,0,0.08)",
+};
+
+const cohorts = [
+  {id:"all",label:"All UTD Students",count:1129},
+  {id:"grad",label:"Graduate Students",count:743},
+  {id:"undergrad",label:"Undergrad Students",count:386},
+  {id:"jsom",label:"JSOM Students",count:312},
+];
+
+const spending = [
+  {name:"Dining",icon:"🍽️",you:312,peers:287,color:Z.orange},
+  {name:"Groceries",icon:"🛒",you:198,peers:243,color:Z.green},
+  {name:"Transport",icon:"🚗",you:89,peers:112,color:Z.blue},
+  {name:"Subscriptions",icon:"📱",you:45,peers:38,color:Z.purple},
+  {name:"Shopping",icon:"🛍️",you:267,peers:310,color:Z.orangeMid},
+];
+
+const milestones = [
+  {icon:"🛬",label:"First Swipe",desc:"Made your first transaction",done:true},
+  {icon:"⏰",label:"On-Time ×3",desc:"Paid on time 3 months straight",done:true},
+  {icon:"📊",label:"Under 30%",desc:"Kept utilization below 30%",done:true},
+  {icon:"🔥",label:"7-Day Streak",desc:"7 consecutive daily check-ins",done:true},
+  {icon:"🏔️",label:"750 Peak",desc:"Reach a 750 credit score",done:false},
+  {icon:"💎",label:"6-Month Pro",desc:"Active Zolve member for 6 months",done:false},
+];
+
+const aiResponses = {
+  "what's credit utilization?": "Credit utilization is the percentage of your available credit that you're currently using. You have a $1,000 limit — at 22% utilization ($220 used), you're in great shape! The sweet spot is under 30%, which you're already beating. Keep it up! 💪",
+  "how to boost my score?": "You're at 714, which is solid! To push toward 750: keep paying on time (you've got a 3-month streak going), maintain that 22% utilization, and avoid opening new credit lines for now. At your current trajectory, you could hit 750 within 4-5 months. 📈",
+  "am i overspending?": "Your total monthly spend of $1,847 is actually 13% below the UTD average of $2,134 — nice! The one area to watch is dining at $312, which is $25 above peers. Shifting even $50/month from dining to savings would build a $600 emergency fund by December. 🍽️→💰",
+  "tips for intl students": "As an international student, three things matter most: 1) Always pay your full balance on time — this builds your U.S. credit history from scratch. 2) Keep utilization under 30% — you're already doing this at 22%. 3) Don't close your Zolve card even after getting other cards — length of credit history matters. You're doing better than 68% of UTD students! 🌟",
+  "what should i do first to build my credit score?": "Great question! Since you already have your Zolve card, the #1 thing is to use it for small, regular purchases — like groceries or your subscriptions — and pay the full balance before the due date every month. You're already doing this with your 3-month on-time streak! Next step: keep your spending under 30% of your $1,000 limit, which you're nailing at 22%. 🎯",
+  "what happens if i miss a payment?": "Missing a payment can drop your score by 50-100 points overnight — and that mark stays on your report for up to 7 years. It also triggers late fees and can increase your APR. The good news: you have a 3-month on-time streak, so you're building a strong foundation. Set up autopay for at least the minimum payment as a safety net! ⚠️",
+};
+
+const defaultResponse = "That's a great question! Based on your financial profile — 714 credit score, 22% utilization, and $1,847 monthly spend — you're doing better than most UTD students. Your main opportunity is reducing dining spend by about $25/month, which your weekly challenge is already targeting. Keep up the daily check-ins and on-time payments! 💪";
+
+function getWeak(){let w=spending[0],d=-Infinity;for(const c of spending){const diff=c.you-c.peers;if(diff>d){d=diff;w=c;}}return w;}
+
+function CreditRing({score,max}){
+  const[v,setV]=useState(0);const pct=score/max;
+  useEffect(()=>{let f;const d=1800,s=performance.now();const go=n=>{const e=Math.min((n-s)/d,1);setV(1-Math.pow(1-e,3));if(e<1)f=requestAnimationFrame(go);};f=requestAnimationFrame(go);return()=>cancelAnimationFrame(f);},[]);
+  const r=72,c=2*Math.PI*r,off=c*(1-v*pct*0.75);
+  let tier="Building",tc=Z.orange;if(score>=750){tier="Excellent";tc=Z.green;}else if(score>=700){tier="Good";tc=Z.blue;}else if(score>=650){tier="Fair";tc=Z.orangeMid;}
+  return(
+    <div style={{position:"relative",width:172,height:172,margin:"0 auto"}}>
+      <svg viewBox="0 0 172 172" style={{transform:"rotate(135deg)"}}><circle cx="86" cy="86" r={r} fill="none" stroke={Z.borderLight} strokeWidth="10" strokeLinecap="round" strokeDasharray={`${c*.75} ${c*.25}`}/><circle cx="86" cy="86" r={r} fill="none" stroke="url(#sg)" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${c*.75} ${c*.25}`} strokeDashoffset={off}/><defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor={Z.orange}/><stop offset="100%" stopColor={Z.green}/></linearGradient></defs></svg>
+      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:6}}>
+        <span style={{fontSize:38,fontWeight:900,color:Z.text,letterSpacing:-1}}>{Math.round(v*score)}</span>
+        <span style={{fontSize:11,fontWeight:700,color:tc,textTransform:"uppercase",letterSpacing:1.5}}>{tier}</span>
+        <span style={{fontSize:10,color:Z.textTert,marginTop:2}}>out of {max}</span>
+      </div>
+    </div>
+  );
+}
+
+function Bar({name,icon,you,peers,color}){
+  const[a,setA]=useState(false);useEffect(()=>{const t=setTimeout(()=>setA(true),300);return()=>clearTimeout(t);},[]);
+  const mx=Math.max(you,peers)*1.2,df=((you-peers)/peers*100).toFixed(0),up=you>peers;
+  return(
+    <div style={{marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+        <span style={{fontSize:13,color:Z.text,fontWeight:500}}>{icon} {name}</span>
+        <span style={{fontSize:11,fontWeight:600,color:up?Z.red:Z.green,background:up?Z.redLight:Z.greenLight,padding:"2px 8px",borderRadius:6}}>{up?"↑":"↓"} {Math.abs(df)}%</span>
+      </div>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <span style={{fontSize:10,color:Z.textTert,width:26,textAlign:"right"}}>You</span>
+        <div style={{flex:1,height:8,borderRadius:4,background:Z.borderLight,overflow:"hidden"}}><div style={{height:"100%",borderRadius:4,background:color,width:a?`${(you/mx)*100}%`:"0%",transition:"width 0.8s cubic-bezier(.22,1,.36,1)"}}/></div>
+        <span style={{fontSize:12,color:Z.text,width:36,fontWeight:700}}>${you}</span>
+      </div>
+      <div style={{display:"flex",gap:6,alignItems:"center",marginTop:3}}>
+        <span style={{fontSize:10,color:Z.textTert,width:26,textAlign:"right"}}>Avg</span>
+        <div style={{flex:1,height:8,borderRadius:4,background:Z.borderLight,overflow:"hidden"}}><div style={{height:"100%",borderRadius:4,background:Z.border,width:a?`${(peers/mx)*100}%`:"0%",transition:"width 1s cubic-bezier(.22,1,.36,1)"}}/></div>
+        <span style={{fontSize:12,color:Z.textSec,width:36}}>${peers}</span>
+      </div>
+    </div>
+  );
+}
+
+function Coach(){
+  const[msgs,setMsgs]=useState([{role:"assistant",text:"Hey Owais! 👋 Your utilization is at 22% — better than most UTD students (avg 34%). Ask me anything about your credit journey!"}]);
+  const[inp,setInp]=useState("");const[load,setLoad]=useState(false);const end=useRef(null);
+  useEffect(()=>{end.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+
+  const send=()=>{
+    if(!inp.trim()||load)return;
+    const m=inp.trim().toLowerCase();setInp("");setMsgs(p=>[...p,{role:"user",text:inp.trim()}]);setLoad(true);
+    const reply=aiResponses[m]||defaultResponse;
+    setTimeout(()=>{setMsgs(p=>[...p,{role:"assistant",text:reply}]);setLoad(false);},1200+Math.random()*800);
+  };
+
+  const quickQs=["What's credit utilization?","How to boost my score?","Am I overspending?","Tips for intl students"];
+
+  return(
+    <div>
+      <div style={{maxHeight:260,overflowY:"auto",marginBottom:10}}>
+        {msgs.map((m,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:8}}>
+            <div style={{maxWidth:"80%",padding:"10px 14px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",background:m.role==="user"?Z.orange:Z.borderLight,color:m.role==="user"?"#fff":Z.text,fontSize:13,lineHeight:1.5}}>{m.text}</div>
+          </div>
+        ))}
+        {load&&<div style={{marginBottom:8}}><div style={{display:"inline-block",padding:"10px 14px",borderRadius:"16px 16px 16px 4px",background:Z.borderLight,color:Z.textTert,fontSize:13}}><span className="pls">●●●</span></div></div>}
+        <div ref={end}/>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+        {quickQs.map(q=>(<button key={q} onClick={()=>setInp(q)} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${Z.border}`,background:Z.white,color:Z.textSec,fontSize:11,cursor:"pointer"}}>{q}</button>))}
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask about credit, spending..." style={{flex:1,padding:"10px 14px",borderRadius:12,border:`1px solid ${Z.border}`,background:Z.white,color:Z.text,fontSize:13,outline:"none"}}/>
+        <button onClick={send} disabled={load} className="zbtn" style={{padding:"10px 18px",borderRadius:12,border:"none",background:Z.orange,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",opacity:load?.5:1}}>Send</button>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const[tab,setTab]=useState("pulse");
+  const[challenged,setChallenged]=useState(false);
+  const[checked,setChecked]=useState(false);
+  const[cohort,setCohort]=useState("all");
+  const[cOpen,setCOpen]=useState(false);
+
+  const streak=checked?13:12;
+  const weak=getWeak(),wDiff=weak.you-weak.peers;
+  const cCohort=cohorts.find(c=>c.id===cohort);
+  const reset=()=>{setChecked(false);setChallenged(false);setTab("pulse");};
+
+  return(
+    <div style={{maxWidth:420,margin:"0 auto",minHeight:"100vh",background:Z.bg,position:"relative"}}>
+      {/* Header */}
+      <div className="fu" style={{background:Z.white,padding:"16px 20px",borderBottom:`1px solid ${Z.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div onClick={reset} style={{width:36,height:36,borderRadius:"50%",border:`2px solid ${Z.orange}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={Z.textSec} strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div><div style={{fontSize:16,fontWeight:700,color:Z.text}}>Owais</div><div style={{fontSize:11,color:Z.textTert}}>UT Dallas</div></div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          {challenged&&<div className="pill-in" style={{background:Z.greenLight,padding:"5px 10px",borderRadius:8,display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:12}}>💰</span><span style={{fontSize:10,fontWeight:700,color:Z.green}}>1.5x Boost</span></div>}
+          <div style={{background:Z.orangeLight,padding:"6px 14px",borderRadius:20,display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:14}}>🔥</span><span style={{fontSize:14,fontWeight:800,color:Z.orange}}>{streak}</span></div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="fu fu1" style={{background:Z.white,display:"flex",borderBottom:`1px solid ${Z.borderLight}`}}>
+        {[{id:"pulse",l:"Pulse"},{id:"journey",l:"Journey"},{id:"coach",l:"AI Guide"}].map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"12px 0",border:"none",cursor:"pointer",background:"transparent",color:tab===t.id?Z.orange:Z.textTert,fontSize:13,fontWeight:tab===t.id?700:500,borderBottom:tab===t.id?`2px solid ${Z.orange}`:"2px solid transparent",boxShadow:tab===t.id?"0 4px 12px rgba(255,90,45,0.15)":"none",transition:"all 0.2s"}}>{t.l}</button>
+        ))}
+      </div>
+
+      <div key={tab} style={{padding:"14px 16px 90px"}}>
+        {tab==="pulse"&&<>
+          <div className="fu fu1" style={{background:Z.card,borderRadius:16,padding:"20px",marginBottom:12,boxShadow:Z.shadow}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <span style={{fontSize:15,fontWeight:700,color:Z.text}}>Credit Score</span>
+              <span style={{fontSize:11,fontWeight:600,color:Z.green,background:Z.greenLight,padding:"3px 10px",borderRadius:8}}>↑ +12 this month</span>
+            </div>
+            <CreditRing score={714} max={850}/>
+            <div style={{display:"flex",justifyContent:"center",gap:32,marginTop:14}}>
+              <div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:900,color:Z.text}}>22%</div><div style={{fontSize:10,color:Z.textTert}}>Your Utilization</div></div>
+              <div style={{width:1,background:Z.border}}/>
+              <div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:900,color:Z.textTert}}>34%</div><div style={{fontSize:10,color:Z.textTert}}>UTD Average</div></div>
+            </div>
+          </div>
+
+          {!checked?(
+            <div className="fu fu2 zbtn" onClick={()=>setChecked(true)} style={{background:Z.orangeLight,borderRadius:14,padding:"14px 16px",marginBottom:12,border:`1px solid ${Z.orange}33`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:38,height:38,borderRadius:10,background:Z.white,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:Z.shadow}}>✅</div>
+                <div><div style={{fontSize:14,fontWeight:600,color:Z.text}}>Daily Check-in</div><div style={{fontSize:11,color:Z.textSec}}>Tap to keep your 12-day streak!</div></div>
+              </div>
+              <span style={{color:Z.orange,fontSize:18,fontWeight:600}}>→</span>
+            </div>
+          ):(
+            <div className="spop" style={{background:Z.greenLight,borderRadius:14,padding:"14px 16px",marginBottom:12,border:`1px solid ${Z.green}33`,textAlign:"center"}}>
+              <span style={{fontSize:20}}>🎉</span><span style={{fontSize:14,fontWeight:700,color:Z.green,marginLeft:8}}>Streak: {streak} days!</span>
+            </div>
+          )}
+
+          <div className="fu fu3" style={{background:Z.card,borderRadius:16,padding:"18px",marginBottom:12,boxShadow:Z.shadow}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <span style={{fontSize:15,fontWeight:700,color:Z.text}}>Peer Pulse</span>
+              <div style={{position:"relative"}}>
+                <button onClick={()=>setCOpen(!cOpen)} style={{fontSize:11,color:Z.textSec,background:Z.borderLight,padding:"5px 10px",borderRadius:8,border:`1px solid ${Z.border}`,cursor:"pointer",fontWeight:500,display:"flex",alignItems:"center",gap:4}}>vs {cCohort.label} ▾</button>
+                {cOpen&&<div style={{position:"absolute",top:"110%",right:0,background:Z.white,border:`1px solid ${Z.border}`,borderRadius:12,overflow:"hidden",zIndex:50,minWidth:190,boxShadow:Z.shadowMd}}>
+                  {cohorts.map(c=><button key={c.id} onClick={()=>{setCohort(c.id);setCOpen(false)}} style={{display:"block",width:"100%",padding:"10px 14px",border:"none",background:cohort===c.id?Z.orangeLight:"transparent",color:cohort===c.id?Z.orange:Z.text,fontSize:12,textAlign:"left",cursor:"pointer",fontWeight:cohort===c.id?600:400,borderBottom:`1px solid ${Z.borderLight}`}}>{c.label} <span style={{color:Z.textTert,fontSize:10}}>({c.count})</span></button>)}
+                </div>}
+              </div>
+            </div>
+            <div style={{background:Z.bg,borderRadius:12,padding:"14px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontSize:10,color:Z.textTert,marginBottom:2,textTransform:"uppercase",letterSpacing:.5,fontWeight:600}}>Your Monthly</div><div style={{fontSize:24,fontWeight:900,color:Z.text}}>$1,847</div></div>
+              <div style={{background:Z.greenLight,color:Z.green,fontSize:11,fontWeight:700,padding:"4px 10px",borderRadius:8}}>13% less</div>
+              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:Z.textTert,marginBottom:2,textTransform:"uppercase",letterSpacing:.5,fontWeight:600}}>Peer Avg</div><div style={{fontSize:24,fontWeight:900,color:Z.textTert}}>$2,134</div></div>
+            </div>
+            {spending.map(c=><Bar key={c.name} {...c}/>)}
+          </div>
+
+          <div className="fu fu4" style={{background:Z.card,borderRadius:16,padding:"18px",marginBottom:12,boxShadow:Z.shadow}}>
+            <div style={{fontSize:15,fontWeight:700,color:Z.text,marginBottom:12}}>🎯 Weekly Challenge</div>
+            <div style={{background:Z.bg,borderRadius:12,padding:"16px",border:`1px solid ${Z.borderLight}`}}>
+              <div style={{fontSize:13,color:Z.text,lineHeight:1.6,marginBottom:10}}>You're spending <strong style={{color:Z.orange}}>${wDiff} more on {weak.name}</strong> than the average UTD student.</div>
+              <div style={{fontSize:12,color:Z.textSec,marginBottom:14}}>Reduce by <strong style={{color:Z.green}}>${Math.round(wDiff*.8)}</strong> to earn <strong style={{color:Z.orange}}>1.5x cashback</strong> on your next statement!</div>
+              {!challenged?(<button onClick={()=>setChallenged(true)} className="zbtn" style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:Z.orange,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Accept Challenge 🚀</button>):(
+                <div className="spop" style={{width:"100%",padding:"12px",borderRadius:12,textAlign:"center",background:Z.greenLight,color:Z.green,fontSize:14,fontWeight:700,border:`1px solid ${Z.green}33`}}>✓ Tracking {weak.name.toLowerCase()} spend</div>
+              )}
+            </div>
+          </div>
+
+          <div className="fu fu5" style={{background:Z.card,borderRadius:16,padding:"18px",marginBottom:12,boxShadow:Z.shadow}}>
+            <div style={{fontSize:15,fontWeight:700,color:Z.text,marginBottom:10}}>🤖 AI Insight</div>
+            <div style={{background:Z.bg,borderRadius:12,padding:"14px",fontSize:13,color:Z.textSec,lineHeight:1.65}}>
+              Your <strong style={{color:Z.orange}}>{weak.name.toLowerCase()} spend</strong> is ${wDiff} above UTD average, but overall you're 13% below peers. Utilization at 22% is healthy — under 30% is the sweet spot. Shifting <strong style={{color:Z.green}}>$50/mo</strong> from dining to savings builds a $600 emergency fund by December.
+            </div>
+            <button onClick={()=>setTab("coach")} className="zbtn" style={{marginTop:10,padding:"8px 14px",borderRadius:10,border:`1px solid ${Z.orange}`,background:"transparent",color:Z.orange,fontSize:12,fontWeight:600,cursor:"pointer"}}>Ask AI Guide →</button>
+          </div>
+        </>}
+
+        {tab==="journey"&&<div className="fu">
+          <div style={{background:Z.card,borderRadius:16,padding:"20px",boxShadow:Z.shadow}}>
+            <div style={{fontSize:15,fontWeight:700,color:Z.text,marginBottom:4}}>Credit Journey</div>
+            <div style={{fontSize:12,color:Z.textTert,marginBottom:20}}>Every milestone gets you closer to financial freedom</div>
+            <div style={{position:"relative",paddingLeft:24}}>
+              <div style={{position:"absolute",left:10,top:6,bottom:6,width:2,background:`linear-gradient(to bottom,${Z.green},${Z.orange}44,${Z.border})`}}/>
+              {milestones.map((a,i)=>(
+                <div key={i} className="fu" style={{animationDelay:`${i*.08}s`,display:"flex",gap:12,marginBottom:14,position:"relative"}}>
+                  <div style={{width:22,height:22,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:a.done?Z.green:Z.borderLight,border:a.done?"none":`2px dashed ${Z.border}`,position:"absolute",left:-23,fontSize:9,color:a.done?"#fff":Z.textTert}}>{a.done?"✓":"○"}</div>
+                  <div style={{flex:1,padding:"12px 14px",borderRadius:12,background:a.done?Z.white:Z.bg,border:a.done?`1px solid ${Z.border}`:`1px dashed ${Z.border}`,opacity:a.done?1:.55}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:20}}>{a.icon}</span>
+                      <div><div style={{fontSize:13,fontWeight:600,color:a.done?Z.text:Z.textTert}}>{a.label}</div><div style={{fontSize:11,color:Z.textTert,marginTop:1}}>{a.desc}</div></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{background:Z.bg,borderRadius:12,padding:"16px",marginTop:8,textAlign:"center"}}>
+              <div style={{fontSize:28,marginBottom:4}}>🎖️</div>
+              <div style={{fontSize:20,fontWeight:900,color:Z.text}}>4 of 6</div>
+              <div style={{fontSize:11,color:Z.textTert,marginTop:2}}>milestones completed</div>
+              <div style={{marginTop:10,height:6,borderRadius:3,background:Z.borderLight,overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:"66%",background:`linear-gradient(90deg,${Z.green},${Z.blue})`}}/></div>
+              <div style={{fontSize:11,color:Z.green,marginTop:6,fontWeight:600}}>Next: 750 credit score 🏔️</div>
+            </div>
+          </div>
+        </div>}
+
+        {tab==="coach"&&<div className="fu">
+          <div style={{background:Z.card,borderRadius:16,padding:"18px",boxShadow:Z.shadow}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+              <div style={{width:36,height:36,borderRadius:10,background:Z.orangeLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
+              <div><div style={{fontSize:14,fontWeight:700,color:Z.text}}>Zolve AI Guide</div><div style={{fontSize:11,color:Z.green,fontWeight:500}}>● Online</div></div>
+            </div>
+            <Coach/>
+          </div>
+        </div>}
+      </div>
+
+      {/* Bottom Nav */}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:420,background:Z.white,borderTop:`1px solid ${Z.borderLight}`,display:"flex",justifyContent:"space-around",padding:"8px 0 16px",zIndex:100}}>
+        {[
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>,l:"Home"},
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/></svg>,l:"Bank"},
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,l:"Pulse",active:true,isNew:true},
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,l:"ZKart"},
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>,l:"Rewards"},
+        ].map(n=>(
+          <div key={n.l} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",position:"relative",color:n.active?Z.orange:Z.textTert}}>
+            {n.isNew&&<div style={{position:"absolute",top:-4,right:-8,background:Z.orange,color:"#fff",fontSize:8,fontWeight:700,padding:"1px 5px",borderRadius:4}}>New</div>}
+            {n.icon}
+            <span style={{fontSize:10,fontWeight:n.active?700:500}}>{n.l}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById("root"));
+</script>
+</body>
+</html>
