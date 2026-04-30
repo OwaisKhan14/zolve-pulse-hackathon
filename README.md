@@ -38,7 +38,7 @@ Zolve has **100K+ students** and real transaction data. Peer Pulse turns that da
 
 ## How to Run
 1. Open the `index.html` file in any modern browser
-2. Or visit the live demo: [GitHub Pages link after deployment]
+2. Or visit the live demo: [[GitHub Pages link after deployment]](https://owaiskhan14.github.io/zolve-pulse-hackathon/)
 3. The AI Guide feature requires internet connectivity for Claude API calls
 
 ## Demo Instructions
